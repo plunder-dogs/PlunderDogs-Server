@@ -127,9 +127,9 @@ int main()
 						if(client->getTcpSocket().receive(receivedPacket) == sf::Socket::Done)
 						{
 							int messageType = -1;
+							receivedPacket >> messageType;
 							if (static_cast<eMessageType>(messageType) == eMessageType::ePlayerReady)
 							{
-								receivedPacket >> messageType;
 								int factionName = -1;
 								receivedPacket >> factionName;
 								++playersReady;
