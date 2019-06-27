@@ -9,7 +9,10 @@ constexpr size_t MAX_CLIENTS = 4;
 
 enum class eMessageType
 {
-	eAssignFaction = 0
+	eEstablishConnection = 0,
+	eNewRemoteConnection,
+	ePlayerReady,
+	eStartGame
 };
 
 struct Faction
@@ -23,6 +26,26 @@ struct Faction
 	const FactionName factionName;
 	bool occupied;
 };
+
+void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, eMessageType messageType, FactionName newFaction)
+{
+	for (auto& client : clients)
+	{
+		sf::Packet packetToSend;
+		packetToSend << static_cast<int>(messageType) << static_cast<int>(newFaction);
+		client->getTcpSocket().send(packetToSend);
+	}
+}
+
+void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, eMessageType messageType)
+{
+	for (auto& client : clients)
+	{
+		sf::Packet packetToSend;
+		packetToSend << static_cast<int>(messageType);
+		client->getTcpSocket().send(packetToSend);
+	}
+}
 
 void resetFaction(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions, FactionName factionName)
 {
@@ -50,6 +73,7 @@ bool isFactionAvailable(std::array<Faction, static_cast<size_t>(FactionName::eTo
 int main()
 {
 	bool serverRunning = true;
+	int playersReady = 0;
 	sf::TcpListener tcpListener;
 	tcpListener.listen(55001);
 	sf::SocketSelector socketSelector;
@@ -63,6 +87,7 @@ int main()
 		FactionName::eGreen,
 		FactionName::eRed
 	};
+
 	std::cout << "Started Listening\n";
 
 	while (serverRunning)
@@ -77,12 +102,15 @@ int main()
 					FactionName availableFaction = getAvaiableFactionName(factions);
 					sf::Packet packetToSend;
 					//Assign new client to faction
-					packetToSend << static_cast<int>(eMessageType::eAssignFaction) << static_cast<int>(availableFaction);
+					packetToSend << static_cast<int>(eMessageType::eEstablishConnection) << static_cast<int>(availableFaction);
 					if (newClient->send(packetToSend) != sf::Socket::Done)
 					{
+						std::cout << "Failed to establish connection\n";
 						resetFaction(factions, availableFaction);
 						continue;
 					}
+
+					broadcastMessage(clients, eMessageType::eNewRemoteConnection, availableFaction);
 
 					std::cout << "New Client Added.\n";
 					clients.push_back(std::make_unique<Client>(std::move(newClient), availableFaction));
@@ -98,7 +126,19 @@ int main()
 						sf::Packet receivedPacket;
 						if(client->getTcpSocket().receive(receivedPacket) == sf::Socket::Done)
 						{
-							std::cout << "Message Received\n";
+							int messageType = -1;
+							if (static_cast<eMessageType>(messageType) == eMessageType::ePlayerReady)
+							{
+								receivedPacket >> messageType;
+								int factionName = -1;
+								receivedPacket >> factionName;
+								++playersReady;
+								if (playersReady == clients.size())
+								{
+									broadcastMessage(clients, eMessageType::eStartGame);
+								}
+							}
+
 						}
 					}
 				}
