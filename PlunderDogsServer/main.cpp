@@ -10,9 +10,10 @@ constexpr size_t MAX_CLIENTS = 4;
 enum class eMessageType
 {
 	eEstablishConnection = 0,
-	eNewRemoteConnection,
+	eNewPlayer,
 	ePlayerReady,
-	eStartGame
+	eStartGame,
+	eDeployShip
 };
 
 struct Faction
@@ -26,6 +27,14 @@ struct Faction
 	const FactionName factionName;
 	bool occupied;
 };
+
+void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, sf::Packet& packetToSend)
+{
+	for (auto& client : clients)
+	{
+		client->getTcpSocket().send(packetToSend);
+	}
+}
 
 void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, eMessageType messageType, FactionName newFaction)
 {
@@ -110,8 +119,6 @@ int main()
 						continue;
 					}
 
-					broadcastMessage(clients, eMessageType::eNewRemoteConnection, availableFaction);
-
 					std::cout << "New Client Added.\n";
 					clients.push_back(std::make_unique<Client>(std::move(newClient), availableFaction));
 					socketSelector.add(clients.back()->getTcpSocket());
@@ -124,7 +131,7 @@ int main()
 					if (socketSelector.isReady(client->getTcpSocket()))
 					{
 						sf::Packet receivedPacket;
-						if(client->getTcpSocket().receive(receivedPacket) == sf::Socket::Done)
+						if (client->getTcpSocket().receive(receivedPacket) == sf::Socket::Done)
 						{
 							int messageType = -1;
 							receivedPacket >> messageType;
@@ -138,12 +145,14 @@ int main()
 									broadcastMessage(clients, eMessageType::eStartGame);
 								}
 							}
-
+							else if (static_cast<eMessageType>(messageType) == eMessageType::eNewPlayer)
+							{
+								broadcastMessage(clients, receivedPacket);
+							}
 						}
 					}
 				}
 			}
-
 		}
 	}
 
