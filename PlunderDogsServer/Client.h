@@ -16,6 +16,7 @@ class Client
 public:
 	Client(std::unique_ptr<sf::TcpSocket>&& tcpSocket, FactionName factionName);
 
+	FactionName getFactionName() const;
 	sf::TcpSocket& getTcpSocket();
 
 private:

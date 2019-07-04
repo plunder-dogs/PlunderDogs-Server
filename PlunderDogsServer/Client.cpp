@@ -7,6 +7,11 @@ Client::Client(std::unique_ptr<sf::TcpSocket>&& tcpSocket, FactionName factionNa
 
 }
 
+FactionName Client::getFactionName() const
+{
+	return m_factionName;
+}
+
 sf::TcpSocket & Client::getTcpSocket()
 {
 	return *m_tcpSocket;

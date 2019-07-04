@@ -13,7 +13,8 @@ enum class eMessageType
 	eNewPlayer,
 	ePlayerReady,
 	eStartGame,
-	eDeployShip
+	eDeployShip,
+	eDisconnect
 };
 
 struct Faction
@@ -81,8 +82,6 @@ bool isFactionAvailable(std::array<Faction, static_cast<size_t>(FactionName::eTo
 
 int main()
 {
-	bool serverRunning = true;
-	int playersReady = 0;
 	sf::TcpListener tcpListener;
 	tcpListener.listen(55001);
 	sf::SocketSelector socketSelector;
@@ -98,7 +97,8 @@ int main()
 	};
 
 	std::cout << "Started Listening\n";
-
+	int playersReady = 0;
+	bool serverRunning = true;
 	while (serverRunning)
 	{
 		if (socketSelector.wait())
@@ -148,6 +148,21 @@ int main()
 							else if (static_cast<eMessageType>(messageType) == eMessageType::eNewPlayer)
 							{
 								broadcastMessage(clients, receivedPacket);
+							}
+							else if (static_cast<eMessageType>(messageType) == eMessageType::eDisconnect)
+							{
+								int factionName = -1;
+								receivedPacket >> factionName;
+								for (auto iter = clients.begin(); iter != clients.end(); ++iter)
+								{
+									if (factionName == iter->get()->getFactionName())
+									{
+										std::cout << "Client Removed\n";
+										socketSelector.remove(client->getTcpSocket());
+										clients.erase(iter);
+										break;
+									}
+								}
 							}
 						}
 					}
