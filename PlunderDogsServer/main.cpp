@@ -109,6 +109,7 @@ int main()
 				if (tcpListener.accept(*newClient) == sf::Socket::Done)
 				{
 					FactionName availableFaction = getAvaiableFactionName(factions);
+					std::cout << availableFaction << "\n";
 					sf::Packet packetToSend;
 					//Assign new client to faction
 					packetToSend << static_cast<int>(eMessageType::eEstablishConnection) << static_cast<int>(availableFaction);
@@ -153,6 +154,7 @@ int main()
 							{
 								int factionName = -1;
 								receivedPacket >> factionName;
+								resetFaction(factions, static_cast<FactionName>(factionName));
 								for (auto iter = clients.begin(); iter != clients.end(); ++iter)
 								{
 									if (factionName == iter->get()->getFactionName())
