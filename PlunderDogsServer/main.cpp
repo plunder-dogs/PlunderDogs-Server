@@ -10,6 +10,7 @@ constexpr size_t MAX_CLIENTS = 4;
 enum class eMessageType
 {
 	eEstablishConnection = 0,
+	eRefuseConnection,
 	eNewPlayer,
 	ePlayerReady,
 	eStartGame,
@@ -74,8 +75,9 @@ FactionName getAvaiableFactionName(std::array<Faction, static_cast<size_t>(Facti
 	return iter->factionName;
 }
 
-bool isFactionAvailable(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
+bool isServerFull(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
 {
+	return true;
 	auto cIter = std::find_if(factions.cbegin(), factions.cend(), [](const auto& faction) { return !faction.occupied; });
 	return cIter != factions.cend();
 }
@@ -103,26 +105,41 @@ int main()
 	{
 		if (socketSelector.wait())
 		{
-			if (socketSelector.isReady(tcpListener) && isFactionAvailable(factions))
+			if (socketSelector.isReady(tcpListener))
 			{
-				std::unique_ptr<sf::TcpSocket> newClient = std::make_unique<sf::TcpSocket>();
-				if (tcpListener.accept(*newClient) == sf::Socket::Done)
+				if (!isServerFull(factions))
 				{
-					FactionName availableFaction = getAvaiableFactionName(factions);
-					std::cout << availableFaction << "\n";
+					std::unique_ptr<sf::TcpSocket> newClient = std::make_unique<sf::TcpSocket>();
+					if (tcpListener.accept(*newClient) == sf::Socket::Done)
+					{
+						FactionName availableFaction = getAvaiableFactionName(factions);
+						std::cout << availableFaction << "\n";
+						sf::Packet packetToSend;
+						//Assign new client to faction
+						packetToSend << static_cast<int>(eMessageType::eEstablishConnection) << static_cast<int>(availableFaction);
+						if (newClient->send(packetToSend) != sf::Socket::Done)
+						{
+							std::cout << "Failed to establish connection\n";
+							resetFaction(factions, availableFaction);
+							continue;
+						}
+
+						std::cout << "New Client Added.\n";
+						clients.push_back(std::make_unique<Client>(std::move(newClient), availableFaction));
+						socketSelector.add(clients.back()->getTcpSocket());
+					}
+				}
+				else
+				{
+					std::cout << "Refused Connection\n";
+					std::unique_ptr<sf::TcpSocket> newClient = std::make_unique<sf::TcpSocket>();
+					//newClient->send()
 					sf::Packet packetToSend;
-					//Assign new client to faction
-					packetToSend << static_cast<int>(eMessageType::eEstablishConnection) << static_cast<int>(availableFaction);
+					packetToSend << static_cast<int>(eMessageType::eRefuseConnection);
 					if (newClient->send(packetToSend) != sf::Socket::Done)
 					{
-						std::cout << "Failed to establish connection\n";
-						resetFaction(factions, availableFaction);
-						continue;
+						std::cout << "Failed to send client message\n";
 					}
-
-					std::cout << "New Client Added.\n";
-					clients.push_back(std::make_unique<Client>(std::move(newClient), availableFaction));
-					socketSelector.add(clients.back()->getTcpSocket());
 				}
 			}
 			else
