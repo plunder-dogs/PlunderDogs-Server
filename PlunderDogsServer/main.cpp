@@ -107,10 +107,20 @@ int main()
 		{
 			if (socketSelector.isReady(tcpListener))
 			{
-				if (!isServerFull(factions))
+				std::unique_ptr<sf::TcpSocket> newClient = std::make_unique<sf::TcpSocket>();
+				if (tcpListener.accept(*newClient) == sf::Socket::Done)
 				{
-					std::unique_ptr<sf::TcpSocket> newClient = std::make_unique<sf::TcpSocket>();
-					if (tcpListener.accept(*newClient) == sf::Socket::Done)
+					if (isServerFull(factions))
+					{
+						std::cout << "Refused Connection\n";
+						sf::Packet packetToSend;
+						packetToSend << static_cast<int>(eMessageType::eRefuseConnection);
+						if (newClient->send(packetToSend) != sf::Socket::Done)
+						{
+							std::cout << "Failed to send client message\n";
+						}
+					}
+					else
 					{
 						FactionName availableFaction = getAvaiableFactionName(factions);
 						std::cout << availableFaction << "\n";
@@ -127,18 +137,6 @@ int main()
 						std::cout << "New Client Added.\n";
 						clients.push_back(std::make_unique<Client>(std::move(newClient), availableFaction));
 						socketSelector.add(clients.back()->getTcpSocket());
-					}
-				}
-				else
-				{
-					std::cout << "Refused Connection\n";
-					std::unique_ptr<sf::TcpSocket> newClient = std::make_unique<sf::TcpSocket>();
-					//newClient->send()
-					sf::Packet packetToSend;
-					packetToSend << static_cast<int>(eMessageType::eRefuseConnection);
-					if (newClient->send(packetToSend) != sf::Socket::Done)
-					{
-						std::cout << "Failed to send client message\n";
 					}
 				}
 			}
