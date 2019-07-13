@@ -77,7 +77,6 @@ FactionName getAvaiableFactionName(std::array<Faction, static_cast<size_t>(Facti
 
 bool isServerFull(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
 {
-	return true;
 	auto cIter = std::find_if(factions.cbegin(), factions.cend(), [](const auto& faction) { return !faction.occupied; });
 	return cIter != factions.cend();
 }
