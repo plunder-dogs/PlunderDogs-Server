@@ -1,15 +1,7 @@
 #pragma once
 #include <memory>
 #include <SFML/Network.hpp>
-
-enum FactionName
-{
-	eYellow = 0,
-	eBlue = 1,
-	eGreen = 2,
-	eRed = 3,
-	eTotal = eRed + 1
-};
+#include "Global.h"
 
 class Client
 {

@@ -7,17 +7,6 @@
 
 constexpr size_t MAX_CLIENTS = 4;
 
-enum class eMessageType
-{
-	eEstablishConnection = 0,
-	eRefuseConnection,
-	eNewPlayer,
-	ePlayerReady,
-	eStartGame,
-	eDeployShip,
-	eDisconnect
-};
-
 struct Faction
 {
 	Faction(FactionName factionName)
@@ -154,32 +143,29 @@ int main()
 					if (socketSelector.isReady(client->getTcpSocket()))
 					{
 						sf::Packet receivedPacket;
+						std::cout << "received Packet From Client\n";
 						if (client->getTcpSocket().receive(receivedPacket) == sf::Socket::Done)
 						{
-							int messageType = -1;
-							receivedPacket >> messageType;
-							if (static_cast<eMessageType>(messageType) == eMessageType::ePlayerReady)
+							ServerMessage receivedServerMessage;
+							receivedPacket >> receivedServerMessage;
+							if (receivedServerMessage.type == eMessageType::ePlayerReady)
 							{
-								int factionName = -1;
-								receivedPacket >> factionName;
 								++playersReady;
 								if (playersReady == clients.size())
 								{
 									broadcastMessage(clients, eMessageType::eStartGame);
 								}
 							}
-							else if (static_cast<eMessageType>(messageType) == eMessageType::eNewPlayer)
+							else if (receivedServerMessage.type == eMessageType::eNewPlayer)
 							{
 								broadcastMessage(clients, receivedPacket);
 							}
-							else if (static_cast<eMessageType>(messageType) == eMessageType::eDisconnect)
+							else if (receivedServerMessage.type == eMessageType::eDisconnect)
 							{
-								int factionName = -1;
-								receivedPacket >> factionName;
-								resetFaction(factions, static_cast<FactionName>(factionName));
+								resetFaction(factions, receivedServerMessage.faction);
 								for (auto iter = clients.begin(); iter != clients.end(); ++iter)
 								{
-									if (factionName == iter->get()->getFactionName())
+									if (receivedServerMessage.faction == iter->get()->getFactionName())
 									{
 										std::cout << "Client Removed\n";
 										socketSelector.remove(client->getTcpSocket());
