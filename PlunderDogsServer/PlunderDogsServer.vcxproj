@@ -124,20 +124,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="SFML\include\SFML\Network\Packet.cpp" />
-    <ClCompile Include="src\Base64.cpp" />
+    <ClCompile Include="src\Utilities\Base64.cpp" />
     <ClCompile Include="src\Client.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\tinyxml.cpp" />
-    <ClCompile Include="src\tinyxmlerror.cpp" />
-    <ClCompile Include="src\tinyxmlparser.cpp" />
-    <ClCompile Include="src\XMLParser.cpp" />
+    <ClCompile Include="src\Utilities\tinyxml.cpp" />
+    <ClCompile Include="src\Utilities\tinyxmlerror.cpp" />
+    <ClCompile Include="src\Utilities\tinyxmlparser.cpp" />
+    <ClCompile Include="src\Utilities\Utilities.cpp" />
+    <ClCompile Include="src\Utilities\XMLParser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Base64.h" />
+    <ClInclude Include="src\Utilities\Base64.h" />
     <ClInclude Include="src\Client.h" />
     <ClInclude Include="src\Global.h" />
-    <ClInclude Include="src\tinyxml.h" />
-    <ClInclude Include="src\XMLParser.h" />
+    <ClInclude Include="src\Utilities\tinyxml.h" />
+    <ClInclude Include="src\Utilities\Utilities.h" />
+    <ClInclude Include="src\Utilities\XMLParser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

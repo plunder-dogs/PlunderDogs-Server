@@ -24,19 +24,22 @@
     <ClCompile Include="SFML\include\SFML\Network\Packet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\XMLParser.cpp">
+    <ClCompile Include="src\Utilities\Base64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Base64.cpp">
+    <ClCompile Include="src\Utilities\tinyxml.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\tinyxml.cpp">
+    <ClCompile Include="src\Utilities\tinyxmlerror.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\tinyxmlerror.cpp">
+    <ClCompile Include="src\Utilities\tinyxmlparser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\tinyxmlparser.cpp">
+    <ClCompile Include="src\Utilities\Utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\XMLParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,13 +50,16 @@
     <ClInclude Include="src\Client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\XMLParser.h">
+    <ClInclude Include="src\Utilities\Base64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Base64.h">
+    <ClInclude Include="src\Utilities\tinyxml.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\tinyxml.h">
+    <ClInclude Include="src\Utilities\Utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utilities\XMLParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
