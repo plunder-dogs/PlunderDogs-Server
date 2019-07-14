@@ -1,6 +1,6 @@
 #include <SFML/Network.hpp>
 #include "Client.h"
-#include <vector>
+#include "XMLParser.h"
 #include <iostream>
 #include <array>
 #include <assert.h>
@@ -93,6 +93,8 @@ int main()
 		FactionName::eGreen,
 		FactionName::eRed
 	};
+
+	std::vector<sf::Vector2i> spawnPositions = XMLParser::parseFactionSpawnPoints("Level1");
 
 	std::cout << "Started Listening\n";
 	int playersReady = 0;
