@@ -1,6 +1,6 @@
 #include <SFML/Network.hpp>
 #include "Client.h"
-#include "XMLParser.h"
+#include "Utilities/XMLParser.h"
 #include <iostream>
 #include <array>
 #include <assert.h>
@@ -64,7 +64,7 @@ FactionName getAvaiableFactionName(std::array<Faction, static_cast<size_t>(Facti
 	return iter->factionName;
 }
 
-bool isServerFull(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
+bool isServerFull(const std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
 {
 	bool serverFull = true;
 	for (const auto& faction : factions)
@@ -94,7 +94,8 @@ int main()
 		FactionName::eRed
 	};
 
-	std::vector<sf::Vector2i> spawnPositions = XMLParser::parseFactionSpawnPoints("Level1");
+	std::string levelName = "Level1.tmx";
+	std::vector<sf::Vector2i> spawnPositions = XMLParser::parseFactionSpawnPoints(levelName);
 
 	std::cout << "Started Listening\n";
 	int playersReady = 0;
