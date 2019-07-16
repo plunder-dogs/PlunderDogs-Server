@@ -12,10 +12,11 @@ struct Faction
 	Faction(FactionName factionName)
 		:factionName(factionName),
 		occupied(false)
-	{
-	}
-
+	{}
+	
 	const FactionName factionName;
+	sf::Vector2i spawnPosition;
+	std::vector<eShipType> ships;
 	bool occupied;
 };
 
@@ -27,22 +28,12 @@ void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, sf::Packet&
 	}
 }
 
-void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, eMessageType messageType, FactionName newFaction)
+void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, const ServerMessage& messageToSend)
 {
+	sf::Packet packetToSend;
+	packetToSend << messageToSend;
 	for (auto& client : clients)
 	{
-		sf::Packet packetToSend;
-		packetToSend << static_cast<int>(messageType) << static_cast<int>(newFaction);
-		client->getTcpSocket().send(packetToSend);
-	}
-}
-
-void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, eMessageType messageType)
-{
-	for (auto& client : clients)
-	{
-		sf::Packet packetToSend;
-		packetToSend << static_cast<int>(messageType);
 		client->getTcpSocket().send(packetToSend);
 	}
 }
@@ -78,6 +69,12 @@ bool isServerFull(const std::array<Faction, static_cast<size_t>(FactionName::eTo
 	return serverFull;
 }
 
+void addFactionShips(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions, FactionName factionName, 
+	std::vector<eShipType>& shipsToAdd)
+{
+	factions[static_cast<int>(factionName)].ships = shipsToAdd;
+}
+
 int main()
 {
 	sf::TcpListener tcpListener;
@@ -95,7 +92,10 @@ int main()
 	};
 
 	std::string levelName = "Level1.tmx";
-	std::vector<sf::Vector2i> spawnPositions = XMLParser::parseFactionSpawnPoints(levelName);
+	for (int i = 0; i < factions.size(); ++i)
+	{
+		factions[i].spawnPosition = XMLParser::parseFactionSpawnPoints(levelName)[i];
+	}
 
 	std::cout << "Started Listening\n";
 	int playersReady = 0;
@@ -113,7 +113,8 @@ int main()
 					{
 						std::cout << "Refused Connection\n";
 						sf::Packet packetToSend;
-						packetToSend << static_cast<int>(eMessageType::eRefuseConnection);
+						ServerMessage messageToSend(eMessageType::eRefuseConnection);
+						packetToSend << messageToSend;
 						if (newClient->send(packetToSend) != sf::Socket::Done)
 						{
 							std::cout << "Failed to send client message\n";
@@ -121,11 +122,20 @@ int main()
 					}
 					else
 					{
-						FactionName availableFaction = getAvaiableFactionName(factions);
-						std::cout << availableFaction << "\n";
-						sf::Packet packetToSend;
 						//Assign new client to faction
-						packetToSend << static_cast<int>(eMessageType::eEstablishConnection) << static_cast<int>(availableFaction);
+						FactionName availableFaction = getAvaiableFactionName(factions);
+						std::vector<ServerMessageExistingFaction> existingFactions;
+						for (const auto& faction : factions)
+						{
+							if (faction.factionName != availableFaction)
+							{
+								existingFactions.emplace_back(faction.factionName, faction.ships);
+							}
+						}
+						ServerMessage messageToSend(eMessageType::eEstablishConnection, availableFaction);
+						messageToSend.existingFactions = existingFactions;
+						sf::Packet packetToSend;
+						packetToSend << messageToSend;
 						if (newClient->send(packetToSend) != sf::Socket::Done)
 						{
 							std::cout << "Failed to establish connection\n";
@@ -147,6 +157,7 @@ int main()
 					{
 						sf::Packet receivedPacket;
 						std::cout << "received Packet From Client\n";
+
 						if (client->getTcpSocket().receive(receivedPacket) == sf::Socket::Done)
 						{
 							ServerMessage receivedServerMessage;
@@ -156,16 +167,28 @@ int main()
 								++playersReady;
 								if (playersReady == clients.size())
 								{
-									broadcastMessage(clients, eMessageType::eStartGame);
+									playersReady = 0;
+									ServerMessage messageToSend(eMessageType::eStartOnlineGame);
+									messageToSend.levelName = levelName;
+
+									for (const auto& faction : factions)
+									{
+										messageToSend.spawnPositions.emplace_back(faction.factionName, 
+											faction.spawnPosition.x, faction.spawnPosition.y);
+									}
+
+									broadcastMessage(clients, messageToSend);
 								}
 							}
 							else if (receivedServerMessage.type == eMessageType::eNewPlayer)
 							{
-								broadcastMessage(clients, receivedPacket);
+								addFactionShips(factions, receivedServerMessage.faction, receivedServerMessage.shipsToAdd);
+								broadcastMessage(clients, receivedServerMessage);
 							}
 							else if (receivedServerMessage.type == eMessageType::eDisconnect)
 							{
 								resetFaction(factions, receivedServerMessage.faction);
+
 								for (auto iter = clients.begin(); iter != clients.end(); ++iter)
 								{
 									if (receivedServerMessage.faction == iter->get()->getFactionName())

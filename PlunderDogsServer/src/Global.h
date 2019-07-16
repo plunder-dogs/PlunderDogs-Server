@@ -15,6 +15,26 @@ const std::string SHIP_DATA_DIRECTORY = "Data\\Ships\\";
 const std::string LEVEL_DATA_DIRECTORY = "Data\\Levels\\";
 const sf::Vector2i MOUSE_POSITION_OFFSET{ 25, 45 };
 
+//enum class eGameMessage
+//{
+//	eDeployAtPosition = 0,
+//	eMoveToPosition,
+//	eFireAtPosition
+//};
+//
+//struct Message
+//{
+//	Message(eGameMessage message, ShipOnTile shipOnTile, sf::Vector2i target)
+//		: message(message),
+//		shipOnTile(shipOnTile),
+//		target(target)
+//	{}
+//
+//	eGameMessage message;
+//	ShipOnTile shipOnTile;
+//	sf::Vector2f target;
+//};
+
 enum FactionName
 {
 	eYellow = 0,
@@ -161,7 +181,7 @@ enum class eMessageType
 	eRefuseConnection,
 	eNewPlayer,
 	ePlayerReady,
-	eStartGame,
+	eStartOnlineGame,
 	eDeployShipAtPosition,
 	eMoveShipToPosition,
 	eAttackShipAtPosition,
@@ -190,6 +210,22 @@ struct ServerMessageSpawnPosition
 	sf::Vector2i position;
 };
 
+struct ServerMessageExistingFaction
+{
+	ServerMessageExistingFaction(FactionName factionName, std::vector<eShipType>&& existingShips)
+		: factionName(factionName),
+		existingShips(std::move(existingShips))
+	{}
+
+	ServerMessageExistingFaction(FactionName factionName, const std::vector<eShipType>& existingShips)
+		: factionName(factionName),
+		existingShips(existingShips)
+	{}
+
+	FactionName factionName;
+	std::vector<eShipType> existingShips;
+};
+
 struct ServerMessage
 {
 	ServerMessage()
@@ -200,7 +236,8 @@ struct ServerMessage
 	{}
 
 	ServerMessage(eMessageType type, FactionName factionName)
-		: type(type)
+		: type(type),
+		faction(factionName)
 	{}
 
 	ServerMessage(eMessageType type, FactionName factionName, std::vector<eShipType>&& shipsToAdd)
@@ -209,11 +246,11 @@ struct ServerMessage
 		shipsToAdd(std::move(shipsToAdd))
 	{}
 
-
 	eMessageType type;
 	FactionName faction;
 	std::string levelName;
 	std::vector<eShipType> shipsToAdd;
 	std::vector<ServerMessageShipAction> shipActions;
 	std::vector<ServerMessageSpawnPosition> spawnPositions;
+	std::vector<ServerMessageExistingFaction> existingFactions;
 };
