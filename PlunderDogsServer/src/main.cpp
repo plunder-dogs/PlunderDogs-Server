@@ -200,6 +200,12 @@ int main()
 									}
 								}
 							}
+							else if (receivedServerMessage.type == eMessageType::eDeployShipAtPosition ||
+								receivedServerMessage.type == eMessageType::eMoveShipToPosition ||
+								receivedServerMessage.type == eMessageType::eAttackShipAtPosition)
+							{
+								broadcastMessage(clients, receivedServerMessage);
+							}					
 						}
 					}
 				}
