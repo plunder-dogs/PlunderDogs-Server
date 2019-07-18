@@ -9,16 +9,92 @@ constexpr size_t MAX_CLIENTS = 4;
 
 struct Faction
 {
-	Faction(FactionName factionName)
+	Faction(FactionName factionName, bool AIControlled = false)
 		:factionName(factionName),
-		occupied(false)
-	{}
+		occupied(false),
+		AIControlled(AIControlled)
+	{
+		if(AIControlled)
+		{
+			occupied = true;
+		}
+	}
 	
 	const FactionName factionName;
 	sf::Vector2i spawnPosition;
 	std::vector<eShipType> ships;
 	bool occupied;
+	bool AIControlled;
 };
+
+void loadAIShips(Faction& faction)
+{
+	assert(faction.AIControlled);
+
+	int randomNumber{ std::rand() % 8 };
+	int numSideCannons{ 0 };
+	int numTurtle{ 0 };
+	int numFlame{ 0 };
+	int numSniper{ 0 };
+
+	switch (randomNumber)
+	{
+	case 0:
+		numFlame = 4;
+		numSideCannons = 2;
+		break;
+	case 1:
+		numTurtle = 2;
+		numSideCannons = 2;
+		numSniper = 2;
+		break;
+	case 2:
+		numTurtle = 3;
+		numSideCannons = 3;
+		break;
+	case 3:
+		numFlame = 2;
+		numSideCannons = 2;
+		numTurtle = 2;
+		break;
+	case 4:
+		numSniper = 4;
+		numSideCannons = 2;
+		break;
+	case 5:
+		numFlame = 3;
+		numSideCannons = 3;
+		break;
+	case 6:
+		numSideCannons = 2;
+		numTurtle = 1;
+		numFlame = 2;
+		numSniper = 1;
+		break;
+	case 7:
+		numFlame = 4;
+		numSniper = 2;
+		break;
+	}
+
+	assert(numSideCannons + numTurtle + numFlame + numSniper < 7);
+	for (int i = 0; i < numFlame; ++i)
+	{
+		faction.ships.push_back(eShipType::eFire);
+	}
+	for (int i = 0; i < numSideCannons; ++i)
+	{
+		faction.ships.push_back(eShipType::eFrigate);
+	}
+	for (int i = 0; i < numTurtle; ++i)
+	{
+		faction.ships.push_back(eShipType::eTurtle);
+	}
+	for (int i = 0; i < numSniper; ++i)
+	{
+		faction.ships.push_back(eShipType::eSniper);
+	}
+}
 
 void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, sf::Packet& packetToSend)
 {
@@ -55,6 +131,20 @@ FactionName getAvaiableFactionName(std::array<Faction, static_cast<size_t>(Facti
 	return iter->factionName;
 }
 
+int numbOfHumanPlayers(const std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
+{
+	int humanCount = 0;
+	for (const auto& faction : factions)
+	{
+		if (!faction.AIControlled && !faction.ships.empty())
+		{
+			++humanCount;
+		}
+	}
+
+	return humanCount;
+}
+
 bool isServerFull(const std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
 {
 	bool serverFull = true;
@@ -87,14 +177,22 @@ int main()
 	{
 		FactionName::eYellow,
 		FactionName::eBlue,
-		FactionName::eGreen,
-		FactionName::eRed
+	   {FactionName::eGreen, true},
+	   {FactionName::eRed, true}
 	};
 
 	std::string levelName = "Level1.tmx";
 	for (int i = 0; i < factions.size(); ++i)
 	{
 		factions[i].spawnPosition = XMLParser::parseFactionSpawnPoints(levelName)[i];
+	}
+
+	for (auto& faction : factions)
+	{
+		if (faction.AIControlled)
+		{
+			loadAIShips(faction);
+		}
 	}
 
 	std::cout << "Started Listening\n";
@@ -129,7 +227,7 @@ int main()
 						{
 							if (faction.factionName != availableFaction)
 							{
-								existingFactions.emplace_back(faction.factionName, faction.ships);
+								existingFactions.emplace_back(faction.factionName, faction.ships, faction.AIControlled);
 							}
 						}
 						ServerMessage messageToSend(eMessageType::eEstablishConnection, availableFaction);
@@ -165,7 +263,7 @@ int main()
 							if (receivedServerMessage.type == eMessageType::ePlayerReady)
 							{
 								++playersReady;
-								if (playersReady == clients.size())
+								if (playersReady == numbOfHumanPlayers(factions))
 								{
 									playersReady = 0;
 									ServerMessage messageToSend(eMessageType::eStartOnlineGame);

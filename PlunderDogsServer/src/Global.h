@@ -195,8 +195,15 @@ struct ServerMessageShipAction
 		position(x, y)
 	{}
 
+	ServerMessageShipAction(int shipID, int x, int y, eDirection direction)
+		: shipID(shipID),
+		position(x, y),
+		direction(direction)
+	{}
+
 	int shipID;
 	sf::Vector2i position;
+	eDirection direction;
 };
 
 struct ServerMessageSpawnPosition
@@ -212,18 +219,22 @@ struct ServerMessageSpawnPosition
 
 struct ServerMessageExistingFaction
 {
-	ServerMessageExistingFaction(FactionName factionName, std::vector<eShipType>&& existingShips)
+	ServerMessageExistingFaction(FactionName factionName, std::vector<eShipType>&& existingShips, bool AIControlled)
 		: factionName(factionName),
+		AIControlled(AIControlled),
 		existingShips(std::move(existingShips))
 	{}
 
-	ServerMessageExistingFaction(FactionName factionName, const std::vector<eShipType>& existingShips)
+	ServerMessageExistingFaction(FactionName factionName, const std::vector<eShipType>& existingShips, bool AIControlled)
 		: factionName(factionName),
+		AIControlled(AIControlled),
 		existingShips(existingShips)
 	{}
 
 	FactionName factionName;
+	bool AIControlled;
 	std::vector<eShipType> existingShips;
+	
 };
 
 struct ServerMessage
