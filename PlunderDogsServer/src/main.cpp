@@ -158,12 +158,6 @@ bool isServerFull(const std::array<Faction, static_cast<size_t>(FactionName::eTo
 	return serverFull;
 }
 
-void addFactionShips(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions, FactionName factionName, 
-	std::vector<eShipType>& shipsToAdd)
-{
-	factions[static_cast<int>(factionName)].ships = shipsToAdd;
-}
-
 int main()
 {
 	sf::TcpListener tcpListener;
@@ -277,7 +271,7 @@ int main()
 							}
 							else if (receivedServerMessage.type == eMessageType::eNewPlayer)
 							{
-								addFactionShips(factions, receivedServerMessage.faction, receivedServerMessage.shipsToAdd);
+								factions[static_cast<int>(receivedServerMessage.faction)].ships = receivedServerMessage.shipsToAdd;
 								broadcastMessage(factions, receivedServerMessage);
 							}
 							else if (receivedServerMessage.type == eMessageType::eDisconnect)
