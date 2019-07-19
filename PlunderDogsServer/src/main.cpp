@@ -1,6 +1,6 @@
-#include <SFML/Network.hpp>
-#include "Client.h"
+#include <SFML/Network.hpp> 
 #include "Utilities/XMLParser.h"
+#include "Global.h"
 #include <iostream>
 #include <array>
 #include <assert.h>
@@ -21,6 +21,7 @@ struct Faction
 	}
 	
 	const FactionName factionName;
+	std::unique_ptr<sf::TcpSocket> m_tcpSocket;
 	sf::Vector2i spawnPosition;
 	std::vector<eShipType> ships;
 	bool occupied;
@@ -96,30 +97,28 @@ void loadAIShips(Faction& faction)
 	}
 }
 
-void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, sf::Packet& packetToSend)
-{
-	for (auto& client : clients)
-	{
-		client->getTcpSocket().send(packetToSend);
-	}
-}
-
-void broadcastMessage(std::vector<std::unique_ptr<Client>>& clients, const ServerMessage& messageToSend)
+void broadcastMessage(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions, const ServerMessage& messageToSend)
 {
 	sf::Packet packetToSend;
 	packetToSend << messageToSend;
-	for (auto& client : clients)
+	for (auto& faction : factions)
 	{
-		client->getTcpSocket().send(packetToSend);
+		if (faction.occupied && !faction.AIControlled)
+		{
+			faction.m_tcpSocket->send(packetToSend);
+		}
 	}
 }
 
-void resetFaction(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions, FactionName factionName)
+void resetFaction(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions, FactionName factionName,
+	sf::SocketSelector& socketSelector)
 {
 	auto iter = std::find_if(factions.begin(), factions.end(), [factionName](const auto& faction) { return faction.factionName == factionName; });
 	assert(iter != factions.end());
 
 	iter->occupied = false;
+	socketSelector.remove(*iter->m_tcpSocket);
+	iter->m_tcpSocket.reset();
 }
 
 FactionName getAvaiableFactionName(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
@@ -171,8 +170,6 @@ int main()
 	tcpListener.listen(55001);
 	sf::SocketSelector socketSelector;
 	socketSelector.add(tcpListener);
-	std::vector<std::unique_ptr<Client>> clients;
-	clients.reserve(MAX_CLIENTS);
 	std::array<Faction, static_cast<size_t>(FactionName::eTotal)> factions
 	{
 		FactionName::eYellow,
@@ -237,26 +234,27 @@ int main()
 						if (newClient->send(packetToSend) != sf::Socket::Done)
 						{
 							std::cout << "Failed to establish connection\n";
-							resetFaction(factions, availableFaction);
+							resetFaction(factions, availableFaction, socketSelector);
 							continue;
 						}
 
 						std::cout << "New Client Added.\n";
-						clients.push_back(std::make_unique<Client>(std::move(newClient), availableFaction));
-						socketSelector.add(clients.back()->getTcpSocket());
+						factions[static_cast<int>(availableFaction)].m_tcpSocket = std::move(newClient);
+						factions[static_cast<int>(availableFaction)].m_tcpSocket;
+						socketSelector.add(*factions[static_cast<int>(availableFaction)].m_tcpSocket);
 					}
 				}
 			}
 			else
 			{
-				for (auto& client : clients)
+				for (auto& faction : factions)
 				{
-					if (socketSelector.isReady(client->getTcpSocket()))
+					if (socketSelector.isReady(*faction.m_tcpSocket))
 					{
 						sf::Packet receivedPacket;
 						std::cout << "received Packet From Client\n";
 
-						if (client->getTcpSocket().receive(receivedPacket) == sf::Socket::Done)
+						if (faction.m_tcpSocket->receive(receivedPacket) == sf::Socket::Done)
 						{
 							ServerMessage receivedServerMessage;
 							receivedPacket >> receivedServerMessage;
@@ -271,39 +269,31 @@ int main()
 
 									for (const auto& faction : factions)
 									{
-										messageToSend.spawnPositions.emplace_back(faction.factionName, 
+										messageToSend.spawnPositions.emplace_back(faction.factionName,
 											faction.spawnPosition.x, faction.spawnPosition.y);
 									}
 
-									broadcastMessage(clients, messageToSend);
+									broadcastMessage(factions, messageToSend);
 								}
 							}
 							else if (receivedServerMessage.type == eMessageType::eNewPlayer)
 							{
 								addFactionShips(factions, receivedServerMessage.faction, receivedServerMessage.shipsToAdd);
-								broadcastMessage(clients, receivedServerMessage);
+								broadcastMessage(factions, receivedServerMessage);
 							}
 							else if (receivedServerMessage.type == eMessageType::eDisconnect)
 							{
-								resetFaction(factions, receivedServerMessage.faction);
+								resetFaction(factions, receivedServerMessage.faction, socketSelector);
 
-								for (auto iter = clients.begin(); iter != clients.end(); ++iter)
-								{
-									if (receivedServerMessage.faction == iter->get()->getFactionName())
-									{
-										std::cout << "Client Removed\n";
-										socketSelector.remove(client->getTcpSocket());
-										clients.erase(iter);
-										break;
-									}
-								}
+								ServerMessage messageToSend(eMessageType::eClientDisconnected, receivedServerMessage.faction);
+								broadcastMessage(factions, messageToSend);
 							}
 							else if (receivedServerMessage.type == eMessageType::eDeployShipAtPosition ||
 								receivedServerMessage.type == eMessageType::eMoveShipToPosition ||
 								receivedServerMessage.type == eMessageType::eAttackShipAtPosition)
 							{
-								broadcastMessage(clients, receivedServerMessage);
-							}					
+								broadcastMessage(factions, receivedServerMessage);
+							}
 						}
 					}
 				}
