@@ -240,7 +240,6 @@ int main()
 
 						std::cout << "New Client Added.\n";
 						factions[static_cast<int>(availableFaction)].m_tcpSocket = std::move(newClient);
-						factions[static_cast<int>(availableFaction)].m_tcpSocket;
 						socketSelector.add(*factions[static_cast<int>(availableFaction)].m_tcpSocket);
 					}
 				}
@@ -249,7 +248,7 @@ int main()
 			{
 				for (auto& faction : factions)
 				{
-					if (socketSelector.isReady(*faction.m_tcpSocket))
+					if (faction.m_tcpSocket && socketSelector.isReady(*faction.m_tcpSocket))
 					{
 						sf::Packet receivedPacket;
 						std::cout << "received Packet From Client\n";
@@ -283,6 +282,7 @@ int main()
 							}
 							else if (receivedServerMessage.type == eMessageType::eDisconnect)
 							{
+								std::cout << "Client Disconnected\n";
 								resetFaction(factions, receivedServerMessage.faction, socketSelector);
 
 								ServerMessage messageToSend(eMessageType::eClientDisconnected, receivedServerMessage.faction);
