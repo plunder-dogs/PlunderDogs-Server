@@ -24,6 +24,7 @@ struct Faction
 	std::unique_ptr<sf::TcpSocket> m_tcpSocket;
 	sf::Vector2i spawnPosition;
 	std::vector<eShipType> ships;
+	std::vector<ServerMessage> m_messageBackLog;
 	bool occupied;
 	bool AIControlled;
 };
@@ -97,6 +98,29 @@ void loadAIShips(Faction& faction)
 	}
 }
 
+void handleMessageBackLogs(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions)
+{
+	for (auto& faction : factions)
+	{
+		if (faction.occupied && !faction.AIControlled && !faction.m_messageBackLog.empty())
+		{
+			for (auto iter = faction.m_messageBackLog.begin(); iter != faction.m_messageBackLog.end();)
+			{
+				sf::Packet packetToSend;
+				packetToSend << (*iter);
+				if (faction.m_tcpSocket->send(packetToSend) == sf::Socket::Done)
+				{
+					iter = faction.m_messageBackLog.erase(iter);
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	}
+}
+
 void broadcastMessage(std::array<Faction, static_cast<size_t>(FactionName::eTotal)>& factions, const ServerMessage& messageToSend)
 {
 	sf::Packet packetToSend;
@@ -105,7 +129,18 @@ void broadcastMessage(std::array<Faction, static_cast<size_t>(FactionName::eTota
 	{
 		if (faction.occupied && !faction.AIControlled)
 		{
-			faction.m_tcpSocket->send(packetToSend);
+			if (faction.m_messageBackLog.empty())
+			{
+				if (faction.m_tcpSocket->send(packetToSend) != sf::Socket::Done)
+				{
+					std::cout << "Failed to send message to client\n";
+					faction.m_messageBackLog.push_back(messageToSend);
+				}
+			}
+			else
+			{
+				faction.m_messageBackLog.push_back(messageToSend);
+			}
 		}
 	}
 }
@@ -191,6 +226,8 @@ int main()
 	bool serverRunning = true;
 	while (serverRunning)
 	{
+		handleMessageBackLogs(factions);
+
 		if (socketSelector.wait())
 		{
 			if (socketSelector.isReady(tcpListener))
@@ -231,6 +268,10 @@ int main()
 							resetFaction(factions, availableFaction, socketSelector);
 							continue;
 						}
+						else
+						{
+							std::cout << "Message sent to client\n";
+						}
 
 						std::cout << "New Client Added.\n";
 						factions[static_cast<int>(availableFaction)].m_tcpSocket = std::move(newClient);
@@ -259,7 +300,7 @@ int main()
 									playersReady = 0;
 									ServerMessage messageToSend(eMessageType::eStartOnlineGame);
 									messageToSend.levelName = levelName;
-
+									std::cout << "Start Online Game\n";
 									for (const auto& faction : factions)
 									{
 										messageToSend.spawnPositions.emplace_back(faction.factionName,
@@ -288,6 +329,10 @@ int main()
 							{
 								broadcastMessage(factions, receivedServerMessage);
 							}
+						}
+						else
+						{
+							std::cout << "Failed to receive packet\n";
 						}
 					}
 				}
