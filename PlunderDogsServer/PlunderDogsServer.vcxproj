@@ -124,6 +124,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="SFML\include\SFML\Network\Packet.cpp" />
+    <ClCompile Include="src\Server.cpp" />
     <ClCompile Include="src\Utilities\Base64.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Utilities\tinyxml.cpp" />
@@ -133,6 +134,8 @@
     <ClCompile Include="src\Utilities\XMLParser.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Faction.h" />
+    <ClInclude Include="src\Server.h" />
     <ClInclude Include="src\Utilities\Base64.h" />
     <ClInclude Include="src\Global.h" />
     <ClInclude Include="src\Utilities\NonCopyable.h" />

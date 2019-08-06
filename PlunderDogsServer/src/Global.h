@@ -72,14 +72,6 @@ enum BattlePhase
 	Attack
 };
 
-enum eControllerType
-{
-	eLocalPlayer = 0,
-	eAI,
-	eRemotePlayer,
-	None
-};
-
 enum eTileType
 {
 	eGrass = 0,
