@@ -93,11 +93,11 @@ Server::Server(std::string&& startingLevel)
 std::unique_ptr<Server> Server::create(std::string&& startingLevel, int portNumber)
 {
 	Server server(std::move(startingLevel));
-	if (server.m_tcpListener->listen(55001) == sf::Socket::Done)
+	if (server.m_tcpListener->listen(portNumber) == sf::Socket::Done)
 	{
 		server.m_socketSelector.add(*server.m_tcpListener);
 		server.m_running = true;
-		std::cout << "Server on port:" << 55001 << " started listening.\n";
+		std::cout << "Server on port:" << portNumber << " started listening.\n";
 		return std::make_unique<Server>(std::move(server));
 	}
 	else
@@ -291,10 +291,16 @@ void Server::broadcastMessage(const ServerMessage & messageToSend)
 
 bool Server::isServerFull() const
 {
-	auto cIter = std::find_if(m_factions.cbegin(), m_factions.cend(), [] (const auto& faction)
-		{ return faction.controllerType == eFactionControllerType::None; });
-	
-	return cIter != m_factions.cend();
+	bool serverFull = true;
+	for (const auto& faction : m_factions)
+	{
+		if (faction.controllerType == eFactionControllerType::None)
+		{
+			serverFull = false;
+		}
+	}
+
+	return serverFull;
 }
 
 Faction & Server::getNonOccupiedFaction()
