@@ -222,9 +222,10 @@ void Server::listenForServerMessages()
 				{
 					++m_remoteClientsReady;
 					m_factions[receivedServerMessage.faction].ready = true;
+					broadcastMessage(receivedServerMessage);
 					if (m_remoteClientsReady == numbOfRemoteClients())
 					{
-						broadcastMessage(receivedServerMessage);
+						
 						m_remoteClientsReady = 0;
 						ServerMessage messageToSend(eMessageType::eStartOnlineGame);
 						messageToSend.levelName = m_levelName;
@@ -236,6 +237,12 @@ void Server::listenForServerMessages()
 
 						broadcastMessage(messageToSend);
 					}
+				}
+				else if (receivedServerMessage.type == eMessageType::ePlayerUnReady)
+				{
+					--m_remoteClientsReady;
+					m_factions[receivedServerMessage.faction].ready = false;
+					broadcastMessage(receivedServerMessage);
 				}
 				else if (receivedServerMessage.type == eMessageType::eNewPlayer)
 				{

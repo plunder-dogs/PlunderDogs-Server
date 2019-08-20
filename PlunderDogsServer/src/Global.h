@@ -179,7 +179,7 @@ enum class eMessageType
 	eAttackShipAtPosition,
 	eDisconnect,
 	eClientDisconnected,
-	eRemotePlayerReady
+	ePlayerUnReady
 };
 
 struct ServerMessageShipAction
