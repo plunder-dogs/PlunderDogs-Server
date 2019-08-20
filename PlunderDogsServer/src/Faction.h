@@ -14,15 +14,16 @@ enum class eFactionControllerType
 
 struct Faction
 {
-	Faction(FactionName factionName, eFactionControllerType controllerType = eFactionControllerType::None)
+	Faction(eFactionName factionName, eFactionControllerType controllerType = eFactionControllerType::None)
 		:factionName(factionName),
 		controllerType(controllerType)
 	{}
 
-	const FactionName factionName;
+	const eFactionName factionName;
 	std::unique_ptr<sf::TcpSocket> m_tcpSocket;
 	sf::Vector2i spawnPosition;
 	std::vector<eShipType> ships;
 	std::vector<ServerMessage> m_messageBackLog;
 	eFactionControllerType controllerType;
+	bool ready;
 };

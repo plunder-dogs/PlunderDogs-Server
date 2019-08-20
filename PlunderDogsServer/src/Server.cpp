@@ -176,11 +176,11 @@ void Server::listenForNewClient()
 			{
 				if (faction.factionName != newlyOccupiedFaction.factionName && faction.controllerType == eFactionControllerType::AI)
 				{
-					existingFactions.emplace_back(faction.factionName, faction.ships, true);
+					existingFactions.emplace_back(faction.factionName, faction.ships, true, true);
 				}
 				else if (faction.factionName != newlyOccupiedFaction.factionName && faction.controllerType != eFactionControllerType::AI)
 				{
-					existingFactions.emplace_back(faction.factionName, faction.ships, false);
+					existingFactions.emplace_back(faction.factionName, faction.ships, false, faction.ready);
 				}
 			}
 
@@ -221,16 +221,17 @@ void Server::listenForServerMessages()
 				if (receivedServerMessage.type == eMessageType::ePlayerReady)
 				{
 					++m_remoteClientsReady;
+					m_factions[receivedServerMessage.faction].ready = true;
 					if (m_remoteClientsReady == numbOfRemoteClients())
 					{
+						broadcastMessage(receivedServerMessage);
 						m_remoteClientsReady = 0;
 						ServerMessage messageToSend(eMessageType::eStartOnlineGame);
 						messageToSend.levelName = m_levelName;
 						std::cout << "Start Online Game\n";
 						for (const auto& faction : m_factions)
 						{
-							messageToSend.spawnPositions.emplace_back(faction.factionName,
-								faction.spawnPosition.x, faction.spawnPosition.y);
+							messageToSend.spawnPositions.emplace_back(faction.factionName, faction.spawnPosition.x, faction.spawnPosition.y);
 						}
 
 						broadcastMessage(messageToSend);

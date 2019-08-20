@@ -16,12 +16,12 @@ private:
 	Server(std::string&& startingLevel);
 	std::unique_ptr<sf::TcpListener> m_tcpListener;
 	sf::SocketSelector m_socketSelector;
-	std::array<Faction, static_cast<size_t>(FactionName::eTotal)> m_factions
+	std::array<Faction, static_cast<size_t>(eFactionName::eTotal)> m_factions
 	{
-		FactionName::eYellow,
-		FactionName::eBlue,
-	   {FactionName::eGreen, eFactionControllerType::AI},
-	   {FactionName::eRed, eFactionControllerType::AI}
+		eFactionName::eYellow,
+		eFactionName::eBlue,
+	   {eFactionName::eGreen, eFactionControllerType::AI},
+	   {eFactionName::eRed, eFactionControllerType::AI}
 	};
 	
 	bool m_running;

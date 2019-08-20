@@ -35,7 +35,7 @@ const sf::Vector2i MOUSE_POSITION_OFFSET{ 25, 45 };
 //	sf::Vector2f target;
 //};
 
-enum FactionName
+enum eFactionName
 {
 	eYellow = 0,
 	eBlue = 1,
@@ -143,7 +143,7 @@ struct ShipOnTile
 		: factionName(),
 		shipID(INVALID_SHIP_ID)
 	{}
-	ShipOnTile(FactionName factionName, int shipID)
+	ShipOnTile(eFactionName factionName, int shipID)
 		: factionName(factionName),
 		shipID(shipID)
 	{}
@@ -163,7 +163,7 @@ struct ShipOnTile
 		shipID = INVALID_SHIP_ID;
 	}
 
-	FactionName factionName;
+	eFactionName factionName;
 	int shipID;
 };
 
@@ -178,7 +178,8 @@ enum class eMessageType
 	eMoveShipToPosition,
 	eAttackShipAtPosition,
 	eDisconnect,
-	eClientDisconnected
+	eClientDisconnected,
+	eRemotePlayerReady
 };
 
 struct ServerMessageShipAction
@@ -201,33 +202,35 @@ struct ServerMessageShipAction
 
 struct ServerMessageSpawnPosition
 {
-	ServerMessageSpawnPosition(FactionName factionName, int x, int y)
+	ServerMessageSpawnPosition(eFactionName factionName, int x, int y)
 		:factionName(factionName),
 		position(x, y)
 	{}
 
-	FactionName factionName;
+	eFactionName factionName;
 	sf::Vector2i position;
 };
 
 struct ServerMessageExistingFaction
 {
-	ServerMessageExistingFaction(FactionName factionName, std::vector<eShipType>&& existingShips, bool AIControlled)
+	ServerMessageExistingFaction(eFactionName factionName, std::vector<eShipType>&& existingShips, bool AIControlled, bool ready)
 		: factionName(factionName),
+		ready(ready),
 		AIControlled(AIControlled),
 		existingShips(std::move(existingShips))
 	{}
 
-	ServerMessageExistingFaction(FactionName factionName, const std::vector<eShipType>& existingShips, bool AIControlled)
+	ServerMessageExistingFaction(eFactionName factionName, const std::vector<eShipType>& existingShips, bool AIControlled, bool ready)
 		: factionName(factionName),
+		ready(ready),
 		AIControlled(AIControlled),
 		existingShips(existingShips)
 	{}
 
-	FactionName factionName;
+	eFactionName factionName;
+	bool ready;
 	bool AIControlled;
 	std::vector<eShipType> existingShips;
-	
 };
 
 struct ServerMessage
@@ -239,19 +242,19 @@ struct ServerMessage
 		: type(type)
 	{}
 
-	ServerMessage(eMessageType type, FactionName factionName)
+	ServerMessage(eMessageType type, eFactionName factionName)
 		: type(type),
 		faction(factionName)
 	{}
 
-	ServerMessage(eMessageType type, FactionName factionName, std::vector<eShipType>&& shipsToAdd)
+	ServerMessage(eMessageType type, eFactionName factionName, std::vector<eShipType>&& shipsToAdd)
 		: type(type),
 		faction(factionName),
 		shipsToAdd(std::move(shipsToAdd))
 	{}
 
 	eMessageType type;
-	FactionName faction;
+	eFactionName faction;
 	std::string levelName;
 	std::vector<eShipType> shipsToAdd;
 	std::vector<ServerMessageShipAction> shipActions;
